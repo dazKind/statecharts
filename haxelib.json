@@ -1,0 +1,12 @@
+{
+  "name": "statecharts",
+  "url" : "https://github.com/dazKind/statecharts",
+  "license": "MIT",
+  "tags": [],
+  "description": "",
+  "version": "0.0.1",
+  "releasenote": "",
+  "classPath": "src",
+  "contributors": ["Michael Bickel"],
+  "dependencies": {}
+}
