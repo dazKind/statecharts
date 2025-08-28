@@ -87,7 +87,7 @@ class State {
         chart = _sc;
         for (t in transitions) {
             t.from = this; 
-            if (t.event.length == 0) // register automatic transition
+            if (!t.hasEvent()) // register automatic transition
                 chart.registerAutomaticTransition(t);
         }
     }
