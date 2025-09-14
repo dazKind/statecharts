@@ -33,11 +33,11 @@ class ParallelState extends State {
     override public function event(_evt:String):Bool {
         if (!active) return false;
 
-        var handled = false;
+        var handled = 0;
         for (c in children) 
-            handled = handled || c.event(_evt);
+            handled += c.event(_evt) ? 1 : 0;
 
-        if (handled) {
+        if (handled > 0) {
             on_event_received.emit(_evt);
             return true;
         }
