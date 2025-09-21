@@ -240,7 +240,7 @@ class StateChart {
         while (queuedEvents.length > 0) {
             var next = queuedEvents.shift();
             on_event_received.emit(next);
-            root.event(_evt);
+            root.event(next);
         }
 
         eventProcessingActive = false;
