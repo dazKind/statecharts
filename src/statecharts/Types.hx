@@ -200,6 +200,36 @@ class StateChart {
         root.enter();
     }
 
+    public function shutdown() {
+        // find all active children and exit them in reverse order!
+        if (root.active) {
+            var toExit = [];
+            var open = [root];
+            while (open.length > 0) {
+                var cur = open.pop();
+                toExit.push(cur);
+                for (c in cur.children)
+                    if (c.active)
+                        open.push(c);
+            }
+            toExit.reverse();
+            for (s in toExit) {
+                s.exit();
+            }
+        }
+
+        // clear instance tracker
+        chartInstances.remove(this);
+        chartTypes.remove(root.name);
+
+        // clear, finally
+        queuedEvents = null;
+        queuedTransitions = null;
+        automaticTransitions = null;
+
+        on_event_received.clear();
+    }
+
     public function registerAutomaticTransition(_t:Transition) {
         automaticTransitions.remove(_t);
         automaticTransitions.push(_t);
