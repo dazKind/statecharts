@@ -92,6 +92,15 @@ class State {
         }
     }
 
+    public function shutdown() {
+        on_state_entered.clear();
+        on_state_exited.clear();
+        on_state_stepped.clear();
+        on_event_received.clear();
+        on_transition_pending.clear();
+        on_state_processing.clear();
+    }
+
     public function enter(?_expectTransition = false) {
         active = true;
         on_state_entered.emit();
@@ -215,6 +224,7 @@ class StateChart {
             toExit.reverse();
             for (s in toExit) {
                 s.exit();
+                s.shutdown();
             }
         }
 
