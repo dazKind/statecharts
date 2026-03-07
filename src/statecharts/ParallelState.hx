@@ -33,16 +33,34 @@ class ParallelState extends State {
     override public function event(_evt:String):Bool {
         if (!active) return false;
 
+        on_event_received.emit(_evt);
+
+        // broadcast to all children — each region processes independently
         var handled = 0;
         for (c in children) 
             handled += c.event(_evt) ? 1 : 0;
 
-        if (handled > 0) {
-            on_event_received.emit(_evt);
+        if (handled > 0)
             return true;
-        }
-        return super.event(_evt);
+
+        // no child handled it, check own transitions
+        for (t in transitions)
+            if (t.event == _evt && t.evaluateGuard()) {
+                runTransition(t);
+                return true;
+            }
+
+        return false;
     }
+
+    // Note on transition conflicts: when multiple children of a parallel state
+    // independently handle the same event and attempt transitions that leave
+    // this parallel state, the transition queuing mechanism in StateChart
+    // serializes them (the first fires, subsequent ones are skipped because
+    // the source state is no longer active). There is no priority-based
+    // conflict resolution as defined in SCXML (document-order priority).
+    // This is acceptable for game-oriented use cases where parallel regions
+    // are typically orthogonal (movement + animation, etc.).
 
     override public function handleTransition(_t:Transition) {
         if (_t.to == this) {

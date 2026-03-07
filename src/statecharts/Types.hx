@@ -3,6 +3,12 @@ package statecharts;
 using StringTools;
 
 //
+enum TransitionType {
+    Internal;
+    External;
+}
+
+//
 @:structInit
 class Guard {
     public var name:String = "";
@@ -18,6 +24,7 @@ class Transition {
     public var event:String = null;
     public var guard:Guard = null;
     public var delaySecs:Float = 0.0;
+    public var type:TransitionType = External;
 
     public function new() {}
 
@@ -57,6 +64,7 @@ class State {
     public var on_state_processing:Signal<Float->Void> = new Signal();
     
     public var active = false;
+    public var completed = false;
     public var name:String = null;
 
     public var transitions:Array<Transition> = [];
@@ -93,6 +101,8 @@ class State {
     }
 
     public function shutdown() {
+        for (c in children)
+            c.shutdown();
         on_state_entered.clear();
         on_state_exited.clear();
         on_state_stepped.clear();
@@ -103,6 +113,7 @@ class State {
 
     public function enter(?_expectTransition = false) {
         active = true;
+        completed = false;
         on_state_entered.emit();
         for (t in transitions)
             if (!t.hasEvent() && t.evaluateGuard()) {
@@ -222,11 +233,12 @@ class StateChart {
                         open.push(c);
             }
             toExit.reverse();
-            for (s in toExit) {
+            for (s in toExit)
                 s.exit();
-                s.shutdown();
-            }
         }
+
+        // clean up all states (including inactive ones)
+        root.shutdown();
 
         // clear instance tracker
         chartInstances.remove(this);
@@ -259,9 +271,10 @@ class StateChart {
         var open = [root];
         while (open.length > 0) {
             var cur = open.shift();
-            if (cur.active/* && cur.on_state_processing.listeners.length > 0*/)
+            if (cur.active)
                 cur.process(_dt);
-            open = open.concat(cur.children);
+            for (c in cur.children)
+                open.push(c);
         }
     }
 

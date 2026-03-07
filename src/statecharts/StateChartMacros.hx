@@ -30,11 +30,20 @@ class StateChartMacros {
 
             var vname = cur.get('name');
             var external = cur.get('external');
-            if (external != null)
-                states.push( macro $i{vname} = new $typePath($v{vname}) );
-            else
-                states.push( macro var $vname = new $typePath($v{vname}) );
 
+            // HistoryState takes (name, deep) — handle the extra constructor arg
+            if (typePath.name == 'HistoryState') {
+                var deep = cur.get('deep') == 'true';
+                if (external != null)
+                    states.push( macro $i{vname} = new $typePath($v{vname}, $v{deep}) );
+                else
+                    states.push( macro var $vname = new $typePath($v{vname}, $v{deep}) );
+            } else {
+                if (external != null)
+                    states.push( macro $i{vname} = new $typePath($v{vname}) );
+                else
+                    states.push( macro var $vname = new $typePath($v{vname}) );
+            }
 
             switch (typePath.name) {
                 case 'CompoundState': {
@@ -95,6 +104,10 @@ class StateChartMacros {
                     if (c.get('event') != null)
                         event = macro $v{c.get('event')};
 
+                    var trType = macro null;
+                    if (c.get('type') != null && c.get('type') == 'internal')
+                        trType = macro tr.type = statecharts.Types.TransitionType.Internal;
+
                     var tr = macro {
                         var tr = new Transition();
                         tr.to = $i{c.get('to')};
@@ -102,6 +115,7 @@ class StateChartMacros {
                         tr.event = $event;
                         $taken;
                         $delay;
+                        $trType;
                         $i{vname}.transitions.push(tr);
                     };
 

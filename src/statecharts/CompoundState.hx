@@ -41,6 +41,12 @@ class CompoundState extends State {
         super.exit();
     }
 
+    override public function shutdown() {
+        on_child_state_entered.clear();
+        on_child_state_exited.clear();
+        super.shutdown();
+    }
+
     override public function step() {
         super.step();
         if (activeState != null)
@@ -50,21 +56,42 @@ class CompoundState extends State {
     override public function event(_evt:String):Bool {
         if (!active) return false;
 
-        if (activeState != null && activeState.event(_evt)) {
-            on_event_received.emit(_evt);
-            return true;
-        }
+        on_event_received.emit(_evt);
 
-        return super.event(_evt);
+        // depth-first: let active child handle it first
+        if (activeState != null && activeState.event(_evt))
+            return true;
+
+        // otherwise check own transitions
+        for (t in transitions)
+            if (t.event == _evt && t.evaluateGuard()) {
+                runTransition(t);
+                return true;
+            }
+
+        return false;
     }
 
     override public function handleTransition(_t:Transition) {
+        // Self-transition
         if (_t.to == this) {
-            exit();
-            enter(false);
+            if (_t.type == Internal) {
+                // local self-transition: don't exit/enter this state, just reset to initial child
+                if (activeState != null)
+                    activeState.exit();
+                if (initialState != null) {
+                    activeState = initialState;
+                    activeState.enter(false);
+                }
+            } else {
+                // external self-transition: full exit and re-enter
+                exit();
+                enter(false);
+            }
             return;
         }
 
+        // Target is a direct child
         if (children.indexOf(_t.to) > -1) {
             if (activeState != null)
                 activeState.exit();
@@ -74,6 +101,8 @@ class CompoundState extends State {
             return;
         }
 
+        // Target is a deeper descendant — walk up from target to find which
+        // direct child is an ancestor of the target
         var next = _t.to;
         var previous = null;
         while (next != null) {
@@ -91,6 +120,7 @@ class CompoundState extends State {
             next = next.parent;
         }
 
+        // Target is outside this subtree — delegate to parent
         this.parent.handleTransition(_t);
     }
 }
