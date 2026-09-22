@@ -33,6 +33,11 @@ class CompoundState extends State {
     }
 
     override public function exit() {
+        // history pseudo-states record the configuration before it is torn down
+        for (c in children)
+            if (c is HistoryState)
+                (cast c : HistoryState).capture();
+
         if (activeState != null) {
             activeState.exit();
             activeState = null;

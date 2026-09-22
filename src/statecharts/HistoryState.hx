@@ -14,7 +14,6 @@ class HistoryState extends State {
 
     override public function init(_sc:StateChart) {
         super.init(_sc);
-        this.parent.on_state_exited.connect(_storeLastState);
     }
 
     override public function enter(?_expectTransition = false) {
@@ -37,7 +36,19 @@ class HistoryState extends State {
         }
     }
 
-    function _storeLastState() {
+    // Without this override the restore transition hit the base no-op
+    // State.handleTransition and history never re-entered the target.
+    override public function handleTransition(_t:Transition) {
+        if (this.parent != null)
+            this.parent.handleTransition(_t);
+    }
+
+    // Called by the parent CompoundState at the START of its exit, while the
+    // active child chain is still intact. (The old on_state_exited hook fired
+    // AFTER children were exited — it always found nothing and history never
+    // recorded.)
+    @:allow(statecharts.CompoundState)
+    function capture() {
         for (c in this.parent.children) {
             if (c == this) continue;
             if (c.active) {
